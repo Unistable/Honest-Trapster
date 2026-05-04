@@ -250,11 +250,7 @@ class EngineManager:
     async def _create_engine(self) -> chess.engine.SimpleEngine:
         """Creates new engine instance."""
         try:
-            loop = asyncio.get_event_loop()
-            transport, engine = await chess.engine.popen_uci(
-                self.engine_path,
-                loop=loop
-            )
+            transport, engine = await chess.engine.popen_uci(self.engine_path)
             self._engine = engine
             self._error_count = 0
             logger.info(f"Engine created: {self.engine_path}")
@@ -581,7 +577,7 @@ class UCIHandler:
         """Main UCI loop."""
         while self._running:
             try:
-                line = await asyncio.get_event_loop().run_in_executor(
+                line = await asyncio.get_running_loop().run_in_executor(
                     None, sys.stdin.readline
                 )
                 if not line:
@@ -806,7 +802,7 @@ class InteractivePlayer:
 
     async def _get_human_move(self) -> None:
         """Gets and validates human move."""
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         while True:
             try:
                 user_input = await loop.run_in_executor(None, input, "Your move: ")
