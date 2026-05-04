@@ -1,11 +1,1 @@
-```
-# Python
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-
-# Logs
-*.log
-trapster.log
-```
+Nothing should be ignored based on the provided file changes. The modification of 'trickster.py' represents a source code change, which should not be added to .gitignore. Since there are no build artifacts, dependencies, or temporary files in the changes, no additional ignore rules are needed.
