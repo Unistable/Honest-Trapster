@@ -279,27 +279,48 @@ class EngineManager:
         limit: chess.engine.Limit,
         multipv: Optional[int] = None
     ) -> List[Dict[str, Any]]:
-        """Performs analysis with automatic engine recovery."""
+        """Performs analysis with automatic engine recovery and timeout protection."""
         engine = await self.get_engine()
+        if engine is None:
+            logger.error("Engine not available for analysis")
+            return []
+        
         try:
             mp = multipv if multipv else self.config.multipv
-            result = await engine.analyse(
-                board,
-                limit,
-                multipv=mp,
-                info=chess.engine.INFO_ALL
-            )
+            # Add timeout protection to prevent hanging
+            timeout_sec = limit.time + 2.0 if limit.time else 15.0
+            
+            async with asyncio.timeout(timeout_sec):
+                result = await engine.analyse(
+                    board,
+                    limit,
+                    multipv=mp,
+                    info=chess.engine.INFO_ALL
+                )
+            
             if isinstance(result, list):
                 return result
             return [result]
+            
+        except asyncio.TimeoutError:
+            logger.warning(f"Analysis timed out after {timeout_sec}s")
+            return []
+        except asyncio.CancelledError:
+            logger.debug("Analysis cancelled by event loop")
+            raise
         except Exception as e:
             logger.warning(f"Analysis failed, recreating engine: {e}")
             await self.close()
             engine = await self.get_engine()
-            result = await engine.analyse(board, limit, multipv=multipv or self.config.multipv)
-            if isinstance(result, list):
-                return result
-            return [result]
+            if engine is None:
+                return []
+            try:
+                result = await engine.analyse(board, limit, multipv=multipv or self.config.multipv)
+                if isinstance(result, list):
+                    return result
+                return [result]
+            except Exception:
+                return []
 
 # =============================================================================
 # TRAP FINDER (CORE LOGIC)
